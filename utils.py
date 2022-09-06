@@ -27,6 +27,9 @@ class AverageMeter(object):
 
 
 def ImageTransforms(mode):
+    '''
+    mode 为挑选ImageTransform的类型，'full'针对包含全部背景的图片，'cropped'针对仅包含眼睛区域的图片
+    '''
     if mode == 'full':
         image_transforms = {
             'Train': transforms.Compose([
@@ -62,10 +65,7 @@ def ImageTransforms(mode):
 
 def DataLoad(DatasetPath, batch_size, img_mode):
     '''
-
-    :param DatasetPath: Full eyes(~/Datasets/TrainValidDataset), Cropped eyes(~/Datasets/Cropped)
-    :param batch_size:
-    :return:
+    DatasetPath: Full eyes(~/Datasets/TrainValidDataset), Cropped eyes(~/Datasets/Cropped)
     '''
     Train_directory = os.path.join(DatasetPath, 'train')
     test_directory = os.path.join(DatasetPath, 'valid')
@@ -83,6 +83,12 @@ def DataLoad(DatasetPath, batch_size, img_mode):
     return DataTotal
 
 def AddDropoutLayer(Net):
+    '''
+    Add Dropout Layer behind each Conv2d Layer, only use for VGG network now.
+    Note:
+        1. Gradient explode will happen if network is training and using this method;
+        2. The results of MC-Dropout by using this method is bad, the accuracy drop down hardly.
+    '''
     feats_list = list(Net.features)
     new_feats_list = []
     for feat in feats_list:
@@ -94,6 +100,13 @@ def AddDropoutLayer(Net):
 
 
 def ForwardStdEntropyEvalute(model, data):
+
+    '''
+    用于训练好的模型做前向传播，并计算模型的不确定性包括方差和预测熵在内的数值
+    model: Ensemble model
+    data: tensor格式为(batch_size, Channel, width, height)
+    Metrics(dict type, includes Std and Entropy), Outputs(batch_size, num_class, num_estimators)
+    '''
 
     outputs_list = []
     for estimator in model.estimators_:
@@ -110,6 +123,9 @@ def ForwardStdEntropyEvalute(model, data):
     return Metrics, Outputs
 
 class Expand2SquareImg:
+    '''
+    针对长宽比较大的眼睛区域的图片，使用该方法能在图片不发生失真的情况下，满足图片以规定尺寸大小输入网络。
+    '''
     def __call__(self, PILImg):
         width, height = PILImg.size
         if width == height:
