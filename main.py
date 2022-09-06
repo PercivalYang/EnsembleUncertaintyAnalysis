@@ -23,7 +23,7 @@ parser.add_argument('--data_path', type=str, default='~/Datasets/TrainValidDatas
 parser.add_argument('--img_mode', type=str, default='full',
                     help='full/cropped img')
 
-parser.add_argument('--ck_dir', type=str, default='./Checkpoint')
+parser.add_argument('--ck_dir', type=str, default='../Checkpoint')
 parser.add_argument('--net', type=str, default='ResNet18')
 
 args = parser.parse_args()

@@ -63,17 +63,25 @@ def ImageTransforms(mode):
         }
         return image_transforms
 
-def DataLoad(DatasetPath, batch_size, img_mode):
+def DataLoad(DatasetPath, batch_size, img_mode='full', CustImgTransf=None):
     '''
-    DatasetPath: Full eyes(~/Datasets/TrainValidDataset), Cropped eyes(~/Datasets/Cropped)
+    DatasetPath: Full eyes(~/Datasets/TrainValidDataset), Cropped eyes(~/Datasets/Cropped)；
+    CustImgTransf: 当为None时采用ImageTransforms的转换，不为None时使用CustImgTransf的转换；
+    reutrn: DataTotal is dict type, includes Train_data and test_data(valid_data)。
     '''
     Train_directory = os.path.join(DatasetPath, 'train')
     test_directory = os.path.join(DatasetPath, 'valid')
 
-    data = {
-        'Train': datasets.ImageFolder(root=Train_directory, transform=ImageTransforms(img_mode)['Train']),
-        'Test': datasets.ImageFolder(root=test_directory, transform=ImageTransforms(img_mode)['Test'])
-    }
+    if CustImgTransf is not None:
+        data = {
+            'Train': datasets.ImageFolder(root=Train_directory, transform=CustImgTransf),
+            'Test': datasets.ImageFolder(root=test_directory, transform=CustImgTransf)
+        }
+    else:
+        data = {
+            'Train': datasets.ImageFolder(root=Train_directory, transform=ImageTransforms(img_mode)['Train']),
+            'Test': datasets.ImageFolder(root=test_directory, transform=ImageTransforms(img_mode)['Test'])
+        }
 
     Train_data = DataLoader(data['Train'], batch_size=batch_size, shuffle=True, num_workers=8, pin_memory=True)
     test_data = DataLoader(data['Test'], batch_size=batch_size, shuffle=False, num_workers=8, pin_memory=True)
@@ -121,6 +129,17 @@ def ForwardStdEntropyEvalute(model, data):
 
     Metrics = {'std': OutStd,'entropy':OutEntropy}
     return Metrics, Outputs
+
+def EnsembleFoward(model, data):
+    """
+    :return: (batch_size, num_class, num_estimators)
+    """
+    outputs_list = []
+    for estimator in model.estimators_:
+        estimator.eval()
+        with torch.no_grad():
+            outputs_list.append(estimator(data))
+    return torch.stack(outputs_list,2)
 
 class Expand2SquareImg:
     '''
